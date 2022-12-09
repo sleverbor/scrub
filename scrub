@@ -44,14 +44,7 @@ class Scrubber
  end
 
  def scrub_file(path)
-  data = JSON.parse File.read(path)
-   data.each do |k,v|
-    if (sensitive_fields.include?(k.to_s))
-     data[k] = scrub(v, true)
-    elsif v.is_a?(Enumerable)
-     data[k] = scrub(v)
-    end
-   end
+  scrub(JSON.parse(File.read(path)))
  end
 end
 
