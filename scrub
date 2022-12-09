@@ -1,0 +1,50 @@
+#!/usr/bin/ruby
+require 'json'
+if ARGV.size != 2
+    puts "Usage:   scrub fields-file input-file"
+    return
+end
+
+ALPHANUMERICS = /[A-Za-z0-9]/
+
+def scrub(v,force = false)
+ case v
+  when nil
+   v
+  when String
+   v.gsub(ALPHANUMERICS,'*') 
+  when Numeric
+   v.to_s.gsub(ALPHANUMERICS,'*')
+  when Array
+   v.map{|x|scrub(x, force)}
+  when Hash
+   v.each do |key,val|
+    new_value = if ($sensitive_fields.include?(key.to_s) || force)
+     scrub(val, true)
+    elsif val.is_a?(Enumerable)
+     scrub(val)
+    else
+     val
+    end
+    v[key]=new_value
+   end
+   v
+  else #boolean
+   '-'
+ end
+end
+
+fields_file_path = ARGV.first
+input_file_path = ARGV.last
+$sensitive_fields = File.read(fields_file_path).split
+data = JSON.parse File.read(input_file_path)
+data.each do |k,v|
+ if ($sensitive_fields.include?(k.to_s))
+  data[k] = scrub(v, true)
+ elsif v.is_a?(Enumerable)
+  data[k] = scrub(v)
+ end
+end
+
+puts data.inspect
+
